@@ -1,0 +1,37 @@
+services:
+  image2video:
+    build:
+      context: .
+    command: python3 image2video.py
+    ports:
+      - "8080:8080"
+    environment:
+      FLASK_APP: image2video.py
+    volumes:
+      - data:/data
+    depends_on:
+      - redis
+
+  worker:
+    build:
+      context: .
+    command: celery --app tasks.celery worker
+    environment:
+      - FLASK_DEBUG=1
+      - APP_SETTINGS=project.server.config.DevelopmentConfig
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    volumes:
+      - data:/data
+    depends_on:
+      - image2video
+      - redis
+
+  redis:
+    image: "redis:alpine"
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  data:
